@@ -11,34 +11,28 @@ from Bio.Seq import Seq
 import sys
 
 
-def genoom_inladen(query: str):
-    sequence = ""
-    gen_positie = []
-    for record in SeqIO.parse("/Users/yesse/Documents/Projecten/webpage/webpage/webpage/primerfinder/sequence.gb", "genbank"):
+def genoom_inladen(bestands_naam: str, query: str):
+    for record in SeqIO.parse(bestands_naam, "genbank"):
         for feature in record.features:
             if feature.type == "gene":
-                if "gene" in feature.qualifiers and feature.qualifiers["gene"][0] == query:
+                if "locus_tag" in feature.qualifiers and feature.qualifiers[
+                    "locus_tag"][0] == query:
                     sequence = record.seq
                     gen_positie = [feature.location.start,
                                    feature.location.end]
 
                     return sequence, gen_positie
-                elif "locus_tag" in feature.qualifiers and feature.qualifiers["locus_tag"][0] == query:
-                    sequence = record.seq
-                    gen_positie = [feature.location.start,
-                                   feature.location.end]
 
-                    return sequence, gen_positie
-
-    return 0
+    return 0, 0
 
 
-def primers_maken(sequence):
+def primers_maken(sequence, primer_lengtes: list[int], gc_ratio_: list[
+    float], smeltpunt: list[int]) -> dict:
     primers = {"sequentie": [], "gc percentage": [], "smeltpunt": [],
                  "locatie": []}
 
     # Loop over de lengtes van primers
-    for lengte_primer in range(17, 26):
+    for lengte_primer in range(primer_lengtes[0], primer_lengtes[1]):
         # Loop over de startposities in de sequentie
         for startpositie in range(len(sequence)):
             # Controleer of de primer past binnen de sequentie
@@ -55,30 +49,30 @@ def primers_maken(sequence):
                                      aantal_nucleotiden['C']) / len(pos_primer)
 
                     # Controleer of het GC-percentage binnen het bereik valt
-                    if 0.54 < gc_percentage <= 0.60:
-                        smeltpunt = 2 * (aantal_nucleotiden['A'] +
-                                         aantal_nucleotiden['T']) + 4 * (
+                    if gc_ratio_[0] < gc_percentage <= gc_ratio_[1]:
+                        berekend_smeltpunt = 2 * (aantal_nucleotiden['A'] +
+                                          aantal_nucleotiden['T']) + 4 * (
                                                 aantal_nucleotiden['G'] +
                                                 aantal_nucleotiden['C'])
 
                         # Controleer of het smeltpunt binnen het bereik valt
-                        if 55 < smeltpunt <= 60:
+                        if smeltpunt[0] < berekend_smeltpunt <= smeltpunt[1]:
                             # Voeg de primer informatie toe aan de dictionary
                             primers["sequentie"].append(pos_primer)
                             primers["gc percentage"].append(gc_percentage)
-                            primers["smeltpunt"].append(smeltpunt)
+                            primers["smeltpunt"].append(berekend_smeltpunt)
 
     return primers
 
 
-def controleren_primer(primer, genbank_sequentie, rev_com):
+def controleren_primer(primer, genbank_sequentie_, rev_com):
     for primer_sequentie in primer["sequentie"]:
         if rev_com:
             seq = primer_sequentie.reverse_complement()
         else:
             seq=primer_sequentie
 
-        begin_pos = genbank_sequentie.find(seq) + 1
+        begin_pos = genbank_sequentie_.find(seq) + 1
 
         if begin_pos != -1:  # Als de sequentie gevonden is (find retourneert niet -1)
             # Bereken de eindpositie
@@ -99,22 +93,26 @@ def print_primers(primers):
     return "\n".join(tekst)
 
 
-def main():
-    genbank_sequentie, gen_positie = genoom_inladen(sys.argv[2])
-    # forward en backward primers
-    seqf = genbank_sequentie[(gen_positie[0] - 75):(gen_positie[0] - 25)]
-    seqb = Seq(genbank_sequentie[(gen_positie[1] + 25):(gen_positie[1] + 100)])
+if __name__ == "__main__":
+    bestandsnaam = "sequence.gb"
+    gezocht_gen = "lambdap07"
+    afstanden = [100, 25]
+    lengte = [17, 26]
+    gc_ratio = [0.54, 0.60]
+    smeltpunt_gebruiker = [55, 60]
+
+    genbank_sequentie, gen_positie = genoom_inladen(bestandsnaam, gezocht_gen)
+    seqf = genbank_sequentie[(gen_positie[0] - afstanden[0]):(gen_positie[0] -
+                                                           afstanden[1])]
+    seqb = Seq(genbank_sequentie[(gen_positie[1] + afstanden[1]):(
+            gen_positie[1] + afstanden[0])])
     seqb = seqb.reverse_complement()
 
-    f_primers = primers_maken(seqf)
-    b_primers = primers_maken(seqb)
+    f_primers = primers_maken(seqf, lengte, gc_ratio, smeltpunt_gebruiker)
+    b_primers = primers_maken(seqb, lengte, gc_ratio, smeltpunt_gebruiker)
     f_primers = controleren_primer(f_primers, genbank_sequentie, False)
     b_primers = controleren_primer(b_primers, genbank_sequentie, True)
 
-    print(f"Van gen {sys.argv[2]}:")
-    print(f"De forward primers:\n{print_primers(f_primers)}")
+    print(f"Van gen {gezocht_gen}:")
+    print(f"De forward primers:\n{print_primers(f_primers)}\n")
     print(f"De backward primers:\n{print_primers(b_primers)}")
-
-
-if __name__ == "__main__":
-    main()
