@@ -62,7 +62,8 @@ def primers_maken(sequence: str, primer_lengtes: list[int], gc_ratio_: list[
     return primers
 
 
-def controleren_primer(primer, genbank_sequentie_, rev_com):
+def controleren_primer(primer: dict, genbank_sequentie_: str, rev_com: bool)\
+        -> dict:
     for primer_sequentie in primer["sequentie"]:
         if rev_com:
             seq = primer_sequentie.reverse_complement()
@@ -71,15 +72,14 @@ def controleren_primer(primer, genbank_sequentie_, rev_com):
 
         begin_pos = genbank_sequentie_.find(seq) + 1
 
-        if begin_pos != -1:  # Als de sequentie gevonden is (find retourneert niet -1)
-            # Bereken de eindpositie
+        if begin_pos != -1:
             eind_pos = begin_pos + len(seq)
             primer["locatie"].append(f"{begin_pos} tot {eind_pos}")
 
     return primer
 
 
-def print_primers(primers):
+def print_primers(primers: dict) -> str:
     tekst = []
     for primertjes in range(len(primers["sequentie"])):
         tekst.append(f"Sequentie: {primers['sequentie'][primertjes]}\n"
