@@ -8,59 +8,56 @@ genoom. Vervolgens worden alle goede primers in een tekstbestand weergeven.
 """
 from Bio import SeqIO
 from Bio.Seq import Seq
-import sys
+from Bio.SeqUtils import gc_fraction
 
 
-def genoom_inladen(bestands_naam: str, query: str):
+def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
+    sequence = ""
+    gen_positie_ = []
+
     for record in SeqIO.parse(bestands_naam, "genbank"):
         for feature in record.features:
             if feature.type == "gene":
                 if "locus_tag" in feature.qualifiers and feature.qualifiers[
                     "locus_tag"][0] == query:
                     sequence = record.seq
-                    gen_positie = [feature.location.start,
-                                   feature.location.end]
+                    gen_positie_ = [feature.location.start,
+                                    feature.location.end]
 
-                    return sequence, gen_positie
-
-    return 0, 0
+    return sequence, gen_positie_
 
 
-def primers_maken(sequence, primer_lengtes: list[int], gc_ratio_: list[
+def primers_maken(sequence: str, primer_lengtes: list[int], gc_ratio_: list[
     float], smeltpunt: list[int]) -> dict:
     primers = {"sequentie": [], "gc percentage": [], "smeltpunt": [],
                  "locatie": []}
 
-    # Loop over de lengtes van primers
+    # Loop over de mogelijke lengtes van primers
     for lengte_primer in range(primer_lengtes[0], primer_lengtes[1]):
-        # Loop over de startposities in de sequentie
         for startpositie in range(len(sequence)):
-            # Controleer of de primer past binnen de sequentie
-            if startpositie <= len(sequence) - lengte_primer:
-                pos_primer = sequence[
-                             startpositie:startpositie + lengte_primer]
+            if startpositie > len(sequence) - lengte_primer:
+                continue
 
-                # Controleer of de laatste base G of C is
-                if pos_primer[-1] in "GC":
-                    # Tel het aantal nucleotiden
-                    aantal_nucleotiden = {nuc: pos_primer.count(nuc) for nuc in
-                                          "ACGT"}
-                    gc_percentage = (aantal_nucleotiden['G'] +
-                                     aantal_nucleotiden['C']) / len(pos_primer)
+            pos_primer = sequence[startpositie:startpositie + lengte_primer]
+            if pos_primer[-1] not in "GC":
+                continue
 
-                    # Controleer of het GC-percentage binnen het bereik valt
-                    if gc_ratio_[0] < gc_percentage <= gc_ratio_[1]:
-                        berekend_smeltpunt = 2 * (aantal_nucleotiden['A'] +
-                                          aantal_nucleotiden['T']) + 4 * (
-                                                aantal_nucleotiden['G'] +
-                                                aantal_nucleotiden['C'])
+            aantal_nucleotiden = {nuc: pos_primer.count(nuc) for nuc in "ACGT"}
+            gc_percentage = gc_fraction(Seq(pos_primer))
+            if gc_ratio[0] > gc_percentage or gc_percentage > gc_ratio_[1]:
+                continue
 
-                        # Controleer of het smeltpunt binnen het bereik valt
-                        if smeltpunt[0] < berekend_smeltpunt <= smeltpunt[1]:
-                            # Voeg de primer informatie toe aan de dictionary
-                            primers["sequentie"].append(pos_primer)
-                            primers["gc percentage"].append(gc_percentage)
-                            primers["smeltpunt"].append(berekend_smeltpunt)
+            berekend_smeltpunt = 2 * (aantal_nucleotiden['A'] +
+                                    aantal_nucleotiden['T']) + 4 * (
+                                    aantal_nucleotiden['G'] +
+                                    aantal_nucleotiden['C'])
+            if (smeltpunt[0] > berekend_smeltpunt or berekend_smeltpunt >=
+                    smeltpunt[1]):
+                continue
+
+            primers["sequentie"].append(pos_primer)
+            primers["gc percentage"].append(gc_percentage)
+            primers["smeltpunt"].append(berekend_smeltpunt)
 
     return primers
 
