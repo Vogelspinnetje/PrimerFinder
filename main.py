@@ -84,6 +84,9 @@ def controleren_primer(primer: dict, genbank_sequentie_: str, rev_com: bool)\
 
 def print_primers(primers: dict) -> str:
     tekst = []
+    if not primers["sequentie"]:
+        return "-Geen primers gevonden-\n"
+
     for primertjes in range(len(primers["sequentie"])):
         tekst.append(f"Sequentie: {primers['sequentie'][primertjes]}\n"
               f"GC percentage: {primers['gc percentage'][primertjes]}\n"
