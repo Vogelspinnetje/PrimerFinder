@@ -24,6 +24,9 @@ def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
                     gen_positie_ = [feature.location.start,
                                     feature.location.end]
 
+    if sequence == "" or gen_positie_ == []:
+        raise KeyError(f"Gen op locus \"{query}\" niet gevonden.")
+
     return sequence, gen_positie_
 
 
