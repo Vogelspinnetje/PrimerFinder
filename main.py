@@ -9,7 +9,7 @@ genoom. Vervolgens worden alle goede primers in een tekstbestand weergeven.
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqUtils import gc_fraction
-
+import yaml
 
 def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
     sequence = ""
@@ -17,7 +17,7 @@ def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
 
     for record in SeqIO.parse(bestands_naam, "genbank"):
         for feature in record.features:
-            if feature.type == "gene":
+            if feature.type == "CDS":
                 if "locus_tag" in feature.qualifiers and feature.qualifiers[
                     "locus_tag"][0] == query:
                     sequence = record.seq
@@ -25,7 +25,9 @@ def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
                                     feature.location.end]
 
     if sequence == "" or gen_positie_ == []:
-        raise KeyError(f"Gen op locus \"{query}\" niet gevonden.")
+        raise KeyError(f"Locus \"{query}\" is niet teruggevonden in "
+                       f"opgegeven GenBank bestand. Zit deze locus "
+                       f"daadwerkelijk in het bestand?")
 
     return sequence, gen_positie_
 
@@ -97,12 +99,16 @@ def print_primers(primers: dict) -> str:
 
 
 if __name__ == "__main__":
-    bestandsnaam = "sequence.gb"
-    gezocht_gen = "lambdap07"
-    afstanden = [100, 25]
-    lengte = [17, 26]
-    gc_ratio = [0.54, 0.60]
-    smeltpunt_gebruiker = [55, 60]
+    with open("config.yaml", "r") as config_yaml:
+        configurations = yaml.safe_load(config_yaml)
+
+    bestandsnaam = "sequence2.gb"
+    gezocht_gen = "LmNIHS28_02196"
+
+    afstanden = configurations["primer_config"]["afstand"]
+    lengte = configurations["primer_config"]["lengte"]
+    gc_ratio = configurations["primer_config"]["gc_percentage"]
+    smeltpunt_gebruiker = configurations["primer_config"]["smeltpunt"]
 
     genbank_sequentie, gen_positie = genoom_inladen(bestandsnaam, gezocht_gen)
     seqf = genbank_sequentie[(gen_positie[0] - afstanden[0]):(gen_positie[0] -
