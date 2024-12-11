@@ -17,16 +17,16 @@ def load_config(config_pad: str) -> dict:
         return yaml.safe_load(config_yaml)
 
 
-def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
-    sequence = ""
-    gen_positie_ = []
+def genoom_inladen(bestands_naam: str, query: str) -> tuple[Seq, list[int, int]]:
+    sequence: str = ""
+    gen_positie_: list[int, int] = []
 
     for record in SeqIO.parse(bestands_naam, "genbank"):
         for feature in record.features:
             if feature.type == "CDS":
                 if "locus_tag" in feature.qualifiers and feature.qualifiers["locus_tag"][0] == query:
-                    sequence: str = record.seq
-                    gen_positie_ = [feature.location.start,
+                    sequence: Seq = record.seq
+                    gen_positie_: list[int, int] = [feature.location.start,
                                     feature.location.end]
 
     if sequence == "" or gen_positie_ == []:
@@ -37,26 +37,24 @@ def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
     return sequence, gen_positie_
 
 
-def primers_maken(sequence: str, primer_lengtes: list[int], gc_ratio_: list[
-    float], smeltpunt: list[int]) -> dict:
-    primers = {"sequentie": [], "gc percentage": [], "smeltpunt": [], "locatie": []}
+def primers_maken(sequence: Seq, primer_lengtes: list[int, int], gc_ratio_: list[float, float], smeltpunt: list[int, int]) -> dict:
+    primers: dict = {"sequentie": [], "gc percentage": [], "smeltpunt": [], "locatie": []}
 
-    # Loop over de mogelijke lengtes van primers
     for lengte_primer in range(primer_lengtes[0], primer_lengtes[1]):
         for startpositie in range(len(sequence)):
             if startpositie > len(sequence) - lengte_primer:
                 continue
 
-            pos_primer = sequence[startpositie:startpositie + lengte_primer]
+            pos_primer: Seq = sequence[startpositie:startpositie + lengte_primer]
             if pos_primer[-1] not in "GC":
                 continue
 
-            aantal_nucleotiden = {nuc: pos_primer.count(nuc) for nuc in "ACGT"}
-            gc_percentage = gc_fraction(Seq(pos_primer))
+            aantal_nucleotiden: dict = {nuc: pos_primer.count(nuc) for nuc in "ACGT"}
+            gc_percentage: float = gc_fraction(Seq(pos_primer))
             if gc_ratio[0] > gc_percentage or gc_percentage > gc_ratio_[1]:
                 continue
 
-            berekend_smeltpunt = 2 * (aantal_nucleotiden['A'] +
+            berekend_smeltpunt: int = 2 * (aantal_nucleotiden['A'] +
                                     aantal_nucleotiden['T']) + 4 * (
                                     aantal_nucleotiden['G'] +
                                     aantal_nucleotiden['C'])
@@ -74,27 +72,28 @@ def primers_maken(sequence: str, primer_lengtes: list[int], gc_ratio_: list[
 def controleren_primer(primer: dict, genbank_sequentie_: str, rev_com: bool) -> dict:
     for primer_sequentie in primer["sequentie"]:
         if rev_com:
-            seq = primer_sequentie.reverse_complement()
+            seq: Seq = primer_sequentie.reverse_complement()
         else:
-            seq=primer_sequentie
+            seq: Seq = primer_sequentie
 
-        begin_pos = genbank_sequentie_.find(seq) + 1
+        begin_pos: int = genbank_sequentie_.find(seq) + 1
 
         if begin_pos != -1:
-            eind_pos = begin_pos + len(seq)
+            eind_pos: int = begin_pos + len(seq)
             primer["locatie"].append(f"{begin_pos} tot {eind_pos}")
 
     return primer
 
 
 def print_primers(primers: dict) -> str:
-    tekst = []
+    tekst: list[str] = []
+    
     if not primers["sequentie"]:
         return "-Geen primers gevonden-\n"
 
     for primertjes in range(len(primers["sequentie"])):
         tekst.append(f"Sequentie: {primers['sequentie'][primertjes]}\n"
-              f"GC percentage: {primers['gc percentage'][primertjes]}\n"
+              f"GC percentage: {primers['gc percentage'][primertjes]:.2f}\n"
               f"Smeltpunt: {primers['smeltpunt'][primertjes]}\n"
               f"Locatie: {primers['locatie'][primertjes]}\n")
 
@@ -102,14 +101,17 @@ def print_primers(primers: dict) -> str:
 
 
 def main(afstanden: list[int, int], lengte: list[int, int], gc_ratio: list[float, float], smeltpunt: list[int, int], genbank_naam: str, gezocht_gen: str):
+    genbank_sequentie: Seq
+    gen_positie: list[int, int]
     genbank_sequentie, gen_positie = genoom_inladen(genbank_naam, gezocht_gen)
     
-    seqf = genbank_sequentie[(gen_positie[0] - afstanden[0]):(gen_positie[0] - afstanden[1])]
-    seqb = Seq(genbank_sequentie[(gen_positie[1] + afstanden[1]):(gen_positie[1] + afstanden[0])])
-    seqb = seqb.reverse_complement()
+    seqf: Seq = genbank_sequentie[(gen_positie[0] - afstanden[0]):(gen_positie[0] - afstanden[1])]
+    seqb: Seq = genbank_sequentie[(gen_positie[1] + afstanden[1]):(gen_positie[1] + afstanden[0])]
+    seqb: Seq = seqb.reverse_complement()
 
-    f_primers = primers_maken(seqf, lengte, gc_ratio, smeltpunt_gebruiker)
-    b_primers = primers_maken(seqb, lengte, gc_ratio, smeltpunt_gebruiker)
+    f_primers: dict = primers_maken(seqf, lengte, gc_ratio, smeltpunt_gebruiker)
+    b_primers: dict = primers_maken(seqb, lengte, gc_ratio, smeltpunt_gebruiker)
+    
     f_primers = controleren_primer(f_primers, genbank_sequentie, False)
     b_primers = controleren_primer(b_primers, genbank_sequentie, True)
 
