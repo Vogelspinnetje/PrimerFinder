@@ -102,8 +102,8 @@ if __name__ == "__main__":
     with open("config.yaml", "r") as config_yaml:
         configurations = yaml.safe_load(config_yaml)
 
-    bestandsnaam = "sequence2.gb"
-    gezocht_gen = "LmNIHS28_02196"
+    bestandsnaam = "sequence.gb"
+    gezocht_gen = "lambdap07"
 
     afstanden = configurations["primer_config"]["afstand"]
     lengte = configurations["primer_config"]["lengte"]

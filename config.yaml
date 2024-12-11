@@ -1,5 +1,5 @@
 primer_config:
   afstand: [150,25] #Afstand van primer tot gen. [maximum, minimum]
-  gc_percentage: [0.50,0.60] # Waarde van GC%. [minimum, maximum]
+  gc_percentage: [0.56,0.58] # Waarde van GC%. [minimum, maximum]
   lengte: [17,26] # Lengte van primer. [minimum, maximum]
-  smeltpunt: [50,65] # Waarde van het smeltpunt, berekend met Wallace Rule. [minimum, maximum]
+  smeltpunt: [59,61] # Waarde van het smeltpunt, berekend met Wallace Rule. [minimum, maximum]
