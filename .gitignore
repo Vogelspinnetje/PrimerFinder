@@ -2,3 +2,4 @@
 *.txt
 .idea/
 .DS_STORE
+*.csv
