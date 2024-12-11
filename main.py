@@ -1,11 +1,3 @@
-"""
-PrimerFinder
-8 februari 2024
-Yesse Monkou
-
-Dit programma zoekt alle mogelijke primers rond aangegeven gen op een
-genoom. Vervolgens worden alle goede primers in een tekstbestand weergeven.
-"""
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqUtils import gc_fraction
@@ -13,11 +5,20 @@ import yaml
 
 
 def load_config(config_pad: str) -> dict:
+    """
+    Laadt het config bestand en returnt een dictionary met alle instellingen.
+    """
     with open(config_pad, "r") as config_yaml:
         return yaml.safe_load(config_yaml)
 
 
 def genoom_inladen(bestands_naam: str, query: str) -> tuple[Seq, list[int, int]]:
+    """
+    Laadt het genbankbestand in en zoekt naar de locus_tag. 
+    De functie returnt de volledige sequentie van het genbank bestand 
+    en een lijst met de begin- en eindpositie van het gen op de 
+    sequentie van het genbank bestand.
+    """
     sequence: str = ""
     gen_positie_: list[int, int] = []
 
@@ -38,6 +39,11 @@ def genoom_inladen(bestands_naam: str, query: str) -> tuple[Seq, list[int, int]]
 
 
 def primers_maken(sequence: Seq, primer_lengtes: list[int, int], gc_ratio_: list[float, float], smeltpunt: list[int, int]) -> dict:
+    """
+    Gaat langs alle mogelijke primers met alle mogelijke lengtes in het genoom.
+    Checkt ook de gc_ratio en het smeltpunt. Returnt een dictionary met gegevens
+    over de mogelijke primers.
+    """
     primers: dict = {"sequentie": [], "gc percentage": [], "smeltpunt": [], "locatie": []}
 
     for lengte_primer in range(primer_lengtes[0], primer_lengtes[1]):
@@ -70,6 +76,11 @@ def primers_maken(sequence: Seq, primer_lengtes: list[int, int], gc_ratio_: list
 
 
 def controleren_primer(primer: dict, genbank_sequentie_: str, rev_com: bool) -> dict:
+    """
+    Controleert of de primer daadwerkelijk op het genoom zit.
+    Maar eigenlijk nog belangrijker, deze functie herleidt de
+    positie van de primer.
+    """
     for primer_sequentie in primer["sequentie"]:
         if rev_com:
             seq: Seq = primer_sequentie.reverse_complement()
@@ -86,21 +97,32 @@ def controleren_primer(primer: dict, genbank_sequentie_: str, rev_com: bool) -> 
 
 
 def print_primers(primers: dict) -> str:
+    """
+    Zet alle primers in CSV (comma-seperated) format.
+    Indeling:
+    sequentie,gc_percentage,smeltpunt,start_pos,eind_pos
+    """
     tekst: list[str] = []
     
     if not primers["sequentie"]:
         return "-Geen primers gevonden-\n"
 
     for primertjes in range(len(primers["sequentie"])):
-        tekst.append(f"Sequentie: {primers['sequentie'][primertjes]}\n"
-              f"GC percentage: {primers['gc percentage'][primertjes]:.2f}\n"
-              f"Smeltpunt: {primers['smeltpunt'][primertjes]}\n"
-              f"Locatie: {primers['locatie'][primertjes]}\n")
+        tekst.append(f"{primers['sequentie'][primertjes]},"
+              f"{primers['gc percentage'][primertjes]:.2f},"
+              f"{primers['smeltpunt'][primertjes]},"
+              f"{primers['locatie'][primertjes].split(" tot ")[0]},"
+              f"{primers['locatie'][primertjes].split(" tot ")[1]}")
 
-    return "\n".join(tekst)
+    return tekst
 
 
-def main(afstanden: list[int, int], lengte: list[int, int], gc_ratio: list[float, float], smeltpunt: list[int, int], genbank_naam: str, gezocht_gen: str):
+def main(afstanden: list[int, int], lengte: list[int, int], gc_ratio: list[float, float], smeltpunt: list[int, int], genbank_naam: str, gezocht_gen: str) -> tuple[list[str], list[str]]:
+    """
+    Main functie van de PrimerFinder. Returned uiteindelijk
+    alle primers in CSV format. Voor meer info hierover zie
+    functie print_primers()
+    """
     genbank_sequentie: Seq
     gen_positie: list[int, int]
     genbank_sequentie, gen_positie = genoom_inladen(genbank_naam, gezocht_gen)
@@ -115,10 +137,25 @@ def main(afstanden: list[int, int], lengte: list[int, int], gc_ratio: list[float
     f_primers = controleren_primer(f_primers, genbank_sequentie, False)
     b_primers = controleren_primer(b_primers, genbank_sequentie, True)
 
-    print(f"Van gen {gezocht_gen}:")
-    print(f"De forward primers:\n{print_primers(f_primers)}\n")
-    print(f"De backward primers:\n{print_primers(b_primers)}")
+    csv_fprimers: list[str] = print_primers(f_primers)
+    csv_bprimers: list[str] = print_primers(b_primers)
     
+    return csv_fprimers, csv_bprimers
+    
+
+def primers_to_csv(primers: list[str], bestandsnaam: str):
+    """
+    Zet de primers in een CSV bestand. Zorg ervoor dat je
+    goed de bestandsnaam meegeeft in het geval dat je forward
+    en backward primers in CSV format wil hebben. Roep de
+    functie dan eerst aan met bijvoorbeeld forward.csv en dan
+    nog eens met backward.csv. Zo schrijven de bestanden elkaar
+    niet over.
+    """
+    with open(bestandsnaam, "w") as fh:
+        fh.write("sequentie,gc_percentage,smeltpunt,start_pos,eind_pos\n")
+        fh.write(f"{"\n".join(primers)}")
+
 
 if __name__ == "__main__":
     config_pad: str = "config.yaml"
@@ -131,4 +168,9 @@ if __name__ == "__main__":
     gc_ratio: list[float, float] = configurations["primer_config"]["gc_percentage"]
     smeltpunt_gebruiker: list[int, int] = configurations["primer_config"]["smeltpunt"]
 
-    main(afstanden, lengte, gc_ratio, smeltpunt_gebruiker, genbank_naam, gezocht_gen)
+    forward_primers: list[str]
+    backward_primers: list[str]
+    forward_primers, backward_primers = main(afstanden, lengte, gc_ratio, smeltpunt_gebruiker, genbank_naam, gezocht_gen)
+    
+    primers_to_csv(forward_primers, "forward.csv")
+    primers_to_csv(backward_primers, "backward.csv")
