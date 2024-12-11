@@ -11,6 +11,12 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import gc_fraction
 import yaml
 
+
+def load_config(config_pad: str) -> dict:
+    with open(config_pad, "r") as config_yaml:
+        return yaml.safe_load(config_yaml)
+
+
 def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
     sequence = ""
     gen_positie_ = []
@@ -18,9 +24,8 @@ def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
     for record in SeqIO.parse(bestands_naam, "genbank"):
         for feature in record.features:
             if feature.type == "CDS":
-                if "locus_tag" in feature.qualifiers and feature.qualifiers[
-                    "locus_tag"][0] == query:
-                    sequence = record.seq
+                if "locus_tag" in feature.qualifiers and feature.qualifiers["locus_tag"][0] == query:
+                    sequence: str = record.seq
                     gen_positie_ = [feature.location.start,
                                     feature.location.end]
 
@@ -34,8 +39,7 @@ def genoom_inladen(bestands_naam: str, query: str) -> tuple[str, list]:
 
 def primers_maken(sequence: str, primer_lengtes: list[int], gc_ratio_: list[
     float], smeltpunt: list[int]) -> dict:
-    primers = {"sequentie": [], "gc percentage": [], "smeltpunt": [],
-                 "locatie": []}
+    primers = {"sequentie": [], "gc percentage": [], "smeltpunt": [], "locatie": []}
 
     # Loop over de mogelijke lengtes van primers
     for lengte_primer in range(primer_lengtes[0], primer_lengtes[1]):
@@ -67,8 +71,7 @@ def primers_maken(sequence: str, primer_lengtes: list[int], gc_ratio_: list[
     return primers
 
 
-def controleren_primer(primer: dict, genbank_sequentie_: str, rev_com: bool)\
-        -> dict:
+def controleren_primer(primer: dict, genbank_sequentie_: str, rev_com: bool) -> dict:
     for primer_sequentie in primer["sequentie"]:
         if rev_com:
             seq = primer_sequentie.reverse_complement()
@@ -98,23 +101,11 @@ def print_primers(primers: dict) -> str:
     return "\n".join(tekst)
 
 
-if __name__ == "__main__":
-    with open("config.yaml", "r") as config_yaml:
-        configurations = yaml.safe_load(config_yaml)
-
-    bestandsnaam = "sequence.gb"
-    gezocht_gen = "lambdap07"
-
-    afstanden = configurations["primer_config"]["afstand"]
-    lengte = configurations["primer_config"]["lengte"]
-    gc_ratio = configurations["primer_config"]["gc_percentage"]
-    smeltpunt_gebruiker = configurations["primer_config"]["smeltpunt"]
-
-    genbank_sequentie, gen_positie = genoom_inladen(bestandsnaam, gezocht_gen)
-    seqf = genbank_sequentie[(gen_positie[0] - afstanden[0]):(gen_positie[0] -
-                                                           afstanden[1])]
-    seqb = Seq(genbank_sequentie[(gen_positie[1] + afstanden[1]):(
-            gen_positie[1] + afstanden[0])])
+def main(afstanden: list[int, int], lengte: list[int, int], gc_ratio: list[float, float], smeltpunt: list[int, int], genbank_naam: str, gezocht_gen: str):
+    genbank_sequentie, gen_positie = genoom_inladen(genbank_naam, gezocht_gen)
+    
+    seqf = genbank_sequentie[(gen_positie[0] - afstanden[0]):(gen_positie[0] - afstanden[1])]
+    seqb = Seq(genbank_sequentie[(gen_positie[1] + afstanden[1]):(gen_positie[1] + afstanden[0])])
     seqb = seqb.reverse_complement()
 
     f_primers = primers_maken(seqf, lengte, gc_ratio, smeltpunt_gebruiker)
@@ -125,3 +116,17 @@ if __name__ == "__main__":
     print(f"Van gen {gezocht_gen}:")
     print(f"De forward primers:\n{print_primers(f_primers)}\n")
     print(f"De backward primers:\n{print_primers(b_primers)}")
+    
+
+if __name__ == "__main__":
+    config_pad: str = "config.yaml"
+    genbank_naam: str = "sequence.gb"
+    gezocht_gen: str = "lambdap07"
+
+    configurations: dict = load_config(config_pad)
+    afstanden: list[int, int] = configurations["primer_config"]["afstand"]
+    lengte: list[int, int] = configurations["primer_config"]["lengte"]
+    gc_ratio: list[float, float] = configurations["primer_config"]["gc_percentage"]
+    smeltpunt_gebruiker: list[int, int] = configurations["primer_config"]["smeltpunt"]
+
+    main(afstanden, lengte, gc_ratio, smeltpunt_gebruiker, genbank_naam, gezocht_gen)
