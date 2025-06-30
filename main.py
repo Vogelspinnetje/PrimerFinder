@@ -111,8 +111,8 @@ def print_primers(primers: dict) -> str:
         tekst.append(f"{primers['sequentie'][primertjes]},"
               f"{primers['gc percentage'][primertjes]:.2f},"
               f"{primers['smeltpunt'][primertjes]},"
-              f"{primers['locatie'][primertjes].split(" tot ")[0]},"
-              f"{primers['locatie'][primertjes].split(" tot ")[1]}")
+              f"{primers['locatie'][primertjes].split(' tot ')[0]},"
+              f"{primers['locatie'][primertjes].split(' tot ')[1]}")
 
     return tekst
 
@@ -154,13 +154,13 @@ def primers_to_csv(primers: list[str], bestandsnaam: str):
     """
     with open(bestandsnaam, "w") as fh:
         fh.write("sequentie,gc_percentage,smeltpunt,start_pos,eind_pos\n")
-        fh.write(f"{"\n".join(primers)}")
+        fh.write('\n'.join(primers))
 
 
 if __name__ == "__main__":
     config_pad: str = "config.yaml"
     genbank_naam: str = "sequence.gb"
-    gezocht_gen: str = "lambdap07"
+    gezocht_gen: str = "PF3D7_1400600"
 
     configurations: dict = load_config(config_pad)
     afstanden: list[int, int] = configurations["primer_config"]["afstand"]
