@@ -10,5 +10,3 @@ PrimerFinder is een programma die het mogelijk maakt om primers te vinden. Het p
 Het script is geschreven in `python 3.12.0`. Er wordt aangeraden om minstens `python 3.9` te gerbuiken. Requirements over python packages zijn te vinden in `requirements.txt`.
 
 ## Usage
-==komt nog==
-==

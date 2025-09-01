@@ -12,12 +12,12 @@ def load_config(config_pad: str) -> dict:
         return yaml.safe_load(config_yaml)
 
 
-def genoom_inladen(bestands_naam: str, query: str) -> tuple[Seq, list[int, int]]:
+def genoom_inladen(bestands_naam: str, query: str, identifier: str) -> tuple[Seq, list[int, int]]:
     """
     Laadt het genbankbestand in en zoekt naar de locus_tag. 
     De functie returnt de volledige sequentie van het genbank bestand 
     en een lijst met de begin- en eindpositie van het gen op de 
-    sequentie van het genbank bestand.
+    sequentie van het genbank bestand.ide
     """
     sequence: str = ""
     gen_positie_: list[int, int] = []
@@ -25,7 +25,7 @@ def genoom_inladen(bestands_naam: str, query: str) -> tuple[Seq, list[int, int]]
     for record in SeqIO.parse(bestands_naam, "genbank"):
         for feature in record.features:
             if feature.type == "CDS":
-                if "locus_tag" in feature.qualifiers and feature.qualifiers["locus_tag"][0] == query:
+                if identifier in feature.qualifiers and feature.qualifiers[identifier][0] == query:
                     sequence: Seq = record.seq
                     gen_positie_: list[int, int] = [feature.location.start,
                                     feature.location.end]
@@ -34,9 +34,8 @@ def genoom_inladen(bestands_naam: str, query: str) -> tuple[Seq, list[int, int]]
         raise KeyError(f"Locus \"{query}\" is niet teruggevonden in "
                        f"opgegeven GenBank bestand. Zit deze locus "
                        f"daadwerkelijk in het bestand?")
-
+    
     return sequence, gen_positie_
-
 
 def primers_maken(sequence: Seq, primer_lengtes: list[int, int], gc_ratio_: list[float, float], smeltpunt: list[int, int]) -> dict:
     """
@@ -49,15 +48,18 @@ def primers_maken(sequence: Seq, primer_lengtes: list[int, int], gc_ratio_: list
     for lengte_primer in range(primer_lengtes[0], primer_lengtes[1]):
         for startpositie in range(len(sequence)):
             if startpositie > len(sequence) - lengte_primer:
+                print("Af: positie")
                 continue
 
             pos_primer: Seq = sequence[startpositie:startpositie + lengte_primer]
             if pos_primer[-1] not in "GC":
+                print("Af: gc")
                 continue
 
             aantal_nucleotiden: dict = {nuc: pos_primer.count(nuc) for nuc in "ACGT"}
             gc_percentage: float = gc_fraction(Seq(pos_primer))
             if gc_ratio[0] > gc_percentage or gc_percentage > gc_ratio_[1]:
+                print("Af: gc%")
                 continue
 
             berekend_smeltpunt: int = 2 * (aantal_nucleotiden['A'] +
@@ -117,7 +119,7 @@ def print_primers(primers: dict) -> str:
     return tekst
 
 
-def main(afstanden: list[int, int], lengte: list[int, int], gc_ratio: list[float, float], smeltpunt: list[int, int], genbank_naam: str, gezocht_gen: str) -> tuple[list[str], list[str]]:
+def main(afstanden: list[int, int], lengte: list[int, int], gc_ratio: list[float, float], smeltpunt: list[int, int], genbank_naam: str, gezocht_gen: str, identifier: str) -> tuple[list[str], list[str]]:
     """
     Main functie van de PrimerFinder. Returned uiteindelijk
     alle primers in CSV format. Voor meer info hierover zie
@@ -125,7 +127,7 @@ def main(afstanden: list[int, int], lengte: list[int, int], gc_ratio: list[float
     """
     genbank_sequentie: Seq
     gen_positie: list[int, int]
-    genbank_sequentie, gen_positie = genoom_inladen(genbank_naam, gezocht_gen)
+    genbank_sequentie, gen_positie = genoom_inladen(genbank_naam, gezocht_gen, identifier)
     
     seqf: Seq = genbank_sequentie[(gen_positie[0] - afstanden[0]):(gen_positie[0] - afstanden[1])]
     seqb: Seq = genbank_sequentie[(gen_positie[1] + afstanden[1]):(gen_positie[1] + afstanden[0])]
@@ -160,17 +162,18 @@ def primers_to_csv(primers: list[str], bestandsnaam: str):
 if __name__ == "__main__":
     config_pad: str = "config.yaml"
     genbank_naam: str = "sequence.gb"
-    gezocht_gen: str = "PF3D7_1400600"
+    gezocht_gen: str = "PF3D7_1400700"
 
     configurations: dict = load_config(config_pad)
     afstanden: list[int, int] = configurations["primer_config"]["afstand"]
     lengte: list[int, int] = configurations["primer_config"]["lengte"]
     gc_ratio: list[float, float] = configurations["primer_config"]["gc_percentage"]
     smeltpunt_gebruiker: list[int, int] = configurations["primer_config"]["smeltpunt"]
+    identifier: str = configurations["primer_config"]["identifier"]
 
     forward_primers: list[str]
     backward_primers: list[str]
-    forward_primers, backward_primers = main(afstanden, lengte, gc_ratio, smeltpunt_gebruiker, genbank_naam, gezocht_gen)
+    forward_primers, backward_primers = main(afstanden, lengte, gc_ratio, smeltpunt_gebruiker, genbank_naam, gezocht_gen, identifier)
     
     primers_to_csv(forward_primers, "forward.csv")
     primers_to_csv(backward_primers, "backward.csv")
