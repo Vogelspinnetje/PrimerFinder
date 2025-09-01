@@ -161,8 +161,6 @@ def primers_to_csv(primers: list[str], bestandsnaam: str):
 
 if __name__ == "__main__":
     config_pad: str = "config.yaml"
-    genbank_naam: str = "sequence.gb"
-    gezocht_gen: str = "PF3D7_1400700"
 
     configurations: dict = load_config(config_pad)
     afstanden: list[int, int] = configurations["primer_config"]["afstand"]
@@ -170,6 +168,8 @@ if __name__ == "__main__":
     gc_ratio: list[float, float] = configurations["primer_config"]["gc_percentage"]
     smeltpunt_gebruiker: list[int, int] = configurations["primer_config"]["smeltpunt"]
     identifier: str = configurations["primer_config"]["identifier"]
+    genbank_naam: str = configurations["primer_config"]["genbank_naam"]
+    gezocht_gen: str = configurations["primer_config"]["gezocht_gen"]
 
     forward_primers: list[str]
     backward_primers: list[str]

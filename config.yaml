@@ -4,3 +4,5 @@ primer_config:
   lengte: [17,26] # Lengte van primer. [minimum, maximum]
   smeltpunt: [55,65] # Waarde van het smeltpunt, berekend met Wallace Rule. [minimum, maximum]
   identifier: locus_tag # De identifier waar gezocht moet worden (meestal locus_tag of gene)
+  genbank_naam: sequence.gb # Path van je genbank file
+  gezocht_gen: PF3D7_1400700 # Gen waar je op wil zoeken (voer hier de waarde in van je locus_tag of gene)
