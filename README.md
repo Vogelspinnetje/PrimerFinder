@@ -10,3 +10,4 @@ PrimerFinder is een programma die het mogelijk maakt om primers te vinden. Het p
 Het script is geschreven in `python 3.12.0`. Er wordt aangeraden om minstens `python 3.9` te gerbuiken. Requirements over python packages zijn te vinden in `requirements.txt`.
 
 ## Usage
+Het is helemaal niet lastig om dit script te gebruiken, je hoeft hem alleen maar te runnen. Het is vooral belangrijk om de instellingen goed in te voeren. Dit doe je in de config.yaml. In deze repo staat een voorbeeld van hoe een config.yaml eruit ziet (met settings die ik zelf heb gebruikt om mijn primers te vinden).
